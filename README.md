@@ -2,12 +2,18 @@
 
 An interactive, zoomable world map showing books read by each author’s country, powered by a public Google Sheet.
 
-The site uses a Robinson-style projection, adaptive forest-green shading, antique cartography styling, country flags, alphabetical book lists, desktop hover details and mobile tap panels.
+The site uses a Robinson-style projection, adaptive forest-green shading, antique cartography styling, country flags, alphabetical book lists, desktop hover details and mobile tap panels. Countries without recorded books remain parchment-coloured but can still be explored.
 
 ## Data refresh
 
-The atlas checks the public reading spreadsheet when the page opens and every five minutes. A bundled snapshot is shown immediately and remains available if the live spreadsheet cannot be reached.
+The atlas reads the public spreadsheet whenever the site opens and checks it again every five minutes while the page is active. The first five spreadsheet columns are expected to remain:
+
+`Title | Author | Genre | Gender | Country`
 
 ## Publishing
 
-This repository is designed for GitHub Pages. Publish the `main` branch from `/(root)` in **Settings → Pages**.
+This repository is ready for GitHub Pages. In **Settings → Pages**, select **Deploy from a branch**, then choose `main` and `/(root)`.
+
+The resulting project-site address will be:
+
+`https://threeescooops.github.io/readers-world-atlas/`
