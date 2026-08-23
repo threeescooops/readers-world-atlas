@@ -19,10 +19,14 @@ The site reads spreadsheet `1vA4ALaNS7Zzmreb69lO7c04d4bb8k2chWaQFKOx5eUU`, tab `
 
 `Title | Author | Genre | Gender | Country`
 
-## GitHub Pages
+## Publish with GitHub Pages
 
-A Pages deployment workflow is included at `.github/workflows/pages.yml`. In **Settings → Pages**, set **Source** to **GitHub Actions**, then run the **Publish Reader’s World Atlas** workflow if it does not start automatically.
+This is a static site and is ready to publish directly from the repository:
 
-The public project address is:
+1. Open **Settings → Pages**.
+2. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
+3. Choose **main** and **/(root)**, then click **Save**.
+
+The public project address will be:
 
 `https://threeescooops.github.io/readers-world-atlas/`
