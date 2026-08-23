@@ -1,32 +1,24 @@
 # The Reader’s World Atlas
 
-A public, single-page interactive map showing books read by each author’s country.
+A public, single-page reading map showing books by each author’s country.
 
 ## Features
 
-- Zoomable and pannable Robinson-projection world map
+- Zoomable Robinson-projection world map
 - Adaptive forest-green shading based on book totals
-- Hover details on desktop and a dismissible bottom sheet on mobile
-- Country flag, total, and alphabetical title/author list
-- Countries with no books remain parchment-coloured and show `0 books`
-- Live Google Sheet refresh on page load and every five minutes
-- Bundled snapshot fallback containing the current reading list
-- Antique cartography styling and a book-dragon logo, favicon and sea sprite
+- Desktop hover details and mobile tap panels
+- Flag emoji, totals and alphabetical book/author lists
+- Antique parchment styling and an illustrated book dragon
+- Live Google Sheet data on page load and every five minutes
 
 ## Data source
 
-The site reads spreadsheet `1vA4ALaNS7Zzmreb69lO7c04d4bb8k2chWaQFKOx5eUU`, tab `gid=0`. Keep the first five columns as:
+The site reads the public Google Sheet with ID `1vA4ALaNS7Zzmreb69lO7c04d4bb8k2chWaQFKOx5eUU`. Each populated row is counted once using the value in its `Country` column.
 
-`Title | Author | Genre | Gender | Country`
+## Hosting
 
-## Publish with GitHub Pages
+The project is designed for GitHub Pages. Publish the `main` branch from the repository root.
 
-This is a static site and is ready to publish directly from the repository:
+## Map data
 
-1. Open **Settings → Pages**.
-2. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-3. Choose **main** and **/(root)**, then click **Save**.
-
-The public project address will be:
-
-`https://threeescooops.github.io/readers-world-atlas/`
+Country geometry is supplied by `world-atlas`, derived from Natural Earth data. Flag metadata is supplied by `world-countries`.
