@@ -1,31 +1,102 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#efe3bf">
-<meta name="description" content="An interactive world atlas of books, mapped by each author’s country.">
-<title>The Reader’s World Atlas</title>
-<style>
-html,body{margin:0;min-height:100%;background:#efe3bf;color:#123f2c;font-family:Georgia,serif}
-body{display:grid;place-items:center}.boot{text-align:center;padding:2rem}
-.boot b{display:block;font-size:1.4rem;margin-bottom:.6rem}.boot p{opacity:.72}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#efe3bf">
+  <meta name="description" content="An interactive atlas of books mapped by each author's country.">
+  <meta property="og:title" content="The Reader’s World Atlas">
+  <meta property="og:description" content="Explore a world map shaded by books read from each author country.">
+  <meta property="og:type" content="website">
+  <title>The Reader’s World Atlas</title>
+  <link rel="icon" href="dragon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main class="boot"><b>Unrolling The Reader’s World Atlas…</b><p>Here be bookwyrms.</p></main>
-<script>
-fetch('atlas-live.html',{cache:'no-store'}).then(response=>{
-  if(!response.ok) throw new Error('Site package unavailable');
-  return response.text();
-}).then(html=>{
-  document.open();
-  document.write(html);
-  document.close();
-}).catch(error=>{
-  console.error('[Reader’s World Atlas] Startup failed:',error);
-  document.querySelector('.boot').innerHTML='<b>The atlas could not be unrolled.</b><p>Please reload the page.</p>';
-});
-</script>
+  <a class="skip" href="#map">Skip to the map</a>
+  <main class="shell">
+    <header class="header">
+      <button class="logo" id="logoReset" aria-label="Reset map to the full world view" title="Reset map">
+        <img src="dragon.svg" alt="">
+      </button>
+      <div class="heading">
+        <p class="kicker">A cartography of reading</p>
+        <h1>The Reader’s World Atlas</h1>
+        <p class="summary" id="summary">Unrolling the reading ledger…</p>
+      </div>
+      <div class="status" id="status" data-state="loading" role="status" aria-live="polite">
+        <span></span><b id="statusText">Loading atlas…</b>
+      </div>
+    </header>
+
+    <section class="atlas" aria-labelledby="mapTitle">
+      <div class="map-head">
+        <div>
+          <p class="kicker">The known reading world</p>
+          <h2 id="mapTitle">Books by author country</h2>
+          <p>Hover over a country for its reading list. Drag to travel; scroll or use the controls to zoom.</p>
+        </div>
+        <div class="controls" aria-label="Map controls">
+          <button id="zoomIn" aria-label="Zoom in">+</button>
+          <button id="zoomOut" aria-label="Zoom out">−</button>
+          <button id="reset" class="reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="map-wrap" id="map">
+        <svg id="world" viewBox="0 0 1200 650" role="img" aria-labelledby="svgTitle svgDesc">
+          <title id="svgTitle">Interactive world map of books read by author country</title>
+          <desc id="svgDesc">Countries become darker forest green as more books are recorded. Every country can be selected for details.</desc>
+          <defs>
+            <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity=".22"/></filter>
+          </defs>
+          <g id="zoomLayer">
+            <path id="sphere" class="sphere"></path>
+            <path id="graticule" class="graticule"></path>
+            <g id="oceanWords" aria-hidden="true">
+              <text x="255" y="340" transform="rotate(-8 255 340)">PACIFIC OCEAN</text>
+              <text x="605" y="390" transform="rotate(-9 605 390)">ATLANTIC OCEAN</text>
+              <text x="875" y="445" transform="rotate(4 875 445)">INDIAN OCEAN</text>
+            </g>
+            <g id="countries"></g>
+            <g id="bookwyrm" transform="translate(250 490) rotate(-7)" aria-hidden="true">
+              <text x="0" y="-80" text-anchor="middle">Here be bookwyrms</text>
+              <image href="dragon.svg" x="-62" y="-70" width="124" height="114"></image>
+            </g>
+            <path id="outline" class="outline"></path>
+          </g>
+          <g class="compass" transform="translate(1125 565)" aria-hidden="true">
+            <circle r="39"></circle><circle r="31"></circle>
+            <path d="M0-50 8-11 0 0-8-11ZM0 50 8 11 0 0-8 11ZM-50 0-11 8 0 0-11-8ZM50 0 11 8 0 0 11-8Z"></path>
+            <path d="M0-31V31M-31 0H31"></path><text x="0" y="-55" text-anchor="middle">N</text>
+          </g>
+        </svg>
+        <aside class="legend" aria-label="Adaptive book count colour legend">
+          <b>Books read</b><div id="legend"></div><small>Adaptive scale</small>
+        </aside>
+        <div class="loading" id="loading"><img src="dragon.svg" alt=""><span>Unrolling the map…</span></div>
+      </div>
+    </section>
+
+    <p class="note">✦ Each row in the public reading ledger counts once for the country entered in its <strong>Country</strong> column. The atlas checks for changes when opened and every five minutes. ✦</p>
+    <footer><img src="dragon.svg" alt=""><span>Here be bookwyrms.</span></footer>
+  </main>
+
+  <aside class="tooltip" id="tooltip" hidden aria-live="polite"><button id="tooltipClose" aria-label="Close country details">×</button><div id="tooltipBody"></div></aside>
+  <div class="backdrop" id="backdrop" hidden></div>
+  <aside class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetName">
+    <div class="handle"></div><button id="sheetClose" aria-label="Close country details">×</button><div id="sheetBody"></div>
+  </aside>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4.0.0/dist/d3-geo-projection.min.js"></script>
+  <script src="data/snapshot-0.js"></script>
+  <script src="data/snapshot-1.js"></script>
+  <script src="data/snapshot-2.js"></script>
+  <script src="data/snapshot-3.js"></script>
+  <script src="data/snapshot-4.js"></script>
+  <script src="data/snapshot-5.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
