@@ -118,7 +118,10 @@ h1{margin:0;font-size:clamp(2.2rem,4.6vw,4.9rem);line-height:.91;letter-spacing:
 .tip-content{position:relative;z-index:2;display:flex;min-height:0;height:100%;flex-direction:column;padding:19px 17px 15px}
 .country-head{flex:none;padding:0 42px 13px 1px;border-bottom:1px solid rgba(119,89,45,.4)}
 .country-title{display:flex;align-items:center;gap:10px;margin:0;font-size:1.62rem;font-weight:500;line-height:1.1}
-.country-title .flag{font-size:1.45rem;filter:saturate(.8)}
+.country-title .flag-frame{display:inline-grid;place-items:center;flex:0 0 30px;width:30px;height:22px}
+.country-title img.flag{display:block;width:auto;height:auto;max-width:30px;max-height:22px;border:1px solid rgba(96,72,36,.35);box-shadow:0 1px 2px rgba(49,34,16,.18);filter:none}
+.country-title .flag-fallback{display:grid;place-items:center;width:30px;height:20px;border:1px solid rgba(96,72,36,.35);background:#ead8aa;color:#4e493b;font:700 .62rem/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em}
+.country-title .flag-fallback[hidden]{display:none}
 .country-total{margin:7px 0 0;color:#50614d;font:700 .78rem ui-sans-serif,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.12em}
 .scroll-hint{margin:8px 0 0;color:#766a50;font:italic .78rem Georgia,serif}
 .book-list{
@@ -257,7 +260,7 @@ let view={x:0,y:0,k:1},pointers=new Map(),dragOrigin=null,pinchOrigin=null,moved
 function norm(v){const n=String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').trim();return ALIAS[n]||n}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function plural(n){return `${n.toLocaleString('en-GB')} ${n===1?'book':'books'}`}
-function flag(alpha2){const c=String(alpha2||'').toUpperCase();return c.length===2?String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt())):'🗺️'}
+function flagMarkup(alpha2){const c=String(alpha2||'').toLowerCase();if(!/^[a-z]{2}$/.test(c))return '<span class="flag-frame"><span class="flag-fallback" aria-hidden="true">—</span></span>';const code=c.toUpperCase();return `<span class="flag-frame" aria-hidden="true"><img class="flag" src="https://flagcdn.com/w40/${c}.png" srcset="https://flagcdn.com/w80/${c}.png 2x" width="30" alt="" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="flag-fallback" hidden>${code}</span></span>`}
 function hex(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
 function mix(a,b,t){const A=hex(a),B=hex(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')}
 function colour(n){if(!n)return ZERO;const t=Math.log1p(n)/Math.log1p(max),p=t*(COLORS.length-1),i=Math.min(COLORS.length-2,Math.floor(p));return mix(COLORS[i],COLORS[i+1],p-i)}
@@ -268,18 +271,19 @@ function group(rows){books=new Map();for(const r of rows){const k=norm(r.Country
 function listFor(el){return books.get(el.dataset.key)||[]}
 function paint(){for(const el of els.countries){const n=listFor(el).length;el.style.fill=colour(n);el.setAttribute('aria-label',`${el.dataset.name}: ${plural(n)}`)}}
 function renderLegend(){els.legend.querySelectorAll('.generated').forEach(x=>x.remove());const vals=[...new Set([1,...[.25,.5,.75,1].map(p=>Math.max(1,Math.round(Math.pow(max,p))))])].sort((a,b)=>a-b);vals.forEach((v,i)=>{const row=document.createElement('div');row.className='legend-row generated';const next=vals[i+1];row.innerHTML=`<i class="swatch" style="background:${colour(v)}"></i><span>${next?`${v}–${next-1}`:`${v}+`} books</span>`;els.legend.insertBefore(row,els.legend.lastElementChild)})}
-function panelHTML(el){const list=listFor(el),name=el.dataset.name,hint=list.length>7?'<p class="scroll-hint">Scroll within this ledger to see every title.</p>':'';return `<div class="country-head"><h3 class="country-title"><span class="flag">${flag(el.dataset.alpha2)}</span>${esc(name)}</h3><p class="country-total">${plural(list.length)} read</p>${hint}</div>${list.length?`<div class="book-list" tabindex="0" aria-label="Books read from ${esc(name)}">${list.map(b=>`<div class="book"><b>${esc(b.Title)}</b><span>${esc(b.Author)}</span></div>`).join('')}</div>`:'<p class="empty">No books recorded from this country yet.</p>'}`}
+function panelHTML(el){const list=listFor(el),name=el.dataset.name,hint=list.length>7?'<p class="scroll-hint">Scroll within this ledger to see every title.</p>':'';return `<div class="country-head"><h3 class="country-title">${flagMarkup(el.dataset.alpha2)}<span>${esc(name)}</span></h3><p class="country-total">${plural(list.length)} read</p>${hint}</div>${list.length?`<div class="book-list" tabindex="0" aria-label="Books read from ${esc(name)}">${list.map(b=>`<div class="book"><b>${esc(b.Title)}</b><span>${esc(b.Author)}</span></div>`).join('')}</div>`:'<p class="empty">No books recorded from this country yet.</p>'}`}
 function updateOpenPanel(el){const markup=panelHTML(el);if(isTouch())els.sheetContent.innerHTML=markup;else els.tipContent.innerHTML=markup}
 function select(el){if(active)active.classList.remove('active');active=el;el.classList.add('active')}
 function clearActive(){if(active)active.classList.remove('active');active=null}
 function showTip(el,lock=false){clearTimeout(closeTimer);select(el);els.tipContent.innerHTML=panelHTML(el);els.tip.hidden=false;pinned=lock;els.tip.dataset.pinned=String(lock)}
 function hideTip(force=false){if(pinned&&!force)return;els.tip.hidden=true;pinned=false;delete els.tip.dataset.pinned;clearActive()}
-function scheduleClose(){clearTimeout(closeTimer);closeTimer=setTimeout(()=>hideTip(),380)}
+function scheduleClose(delay=90){clearTimeout(closeTimer);closeTimer=setTimeout(()=>hideTip(),delay)}
 function openSheet(el){select(el);els.sheetContent.innerHTML=panelHTML(el);els.sheet.classList.add('open');els.backdrop.classList.add('open');document.body.style.overflow='hidden'}
 function closeSheet(){els.sheet.classList.remove('open');els.backdrop.classList.remove('open');document.body.style.overflow='';clearActive()}
 function isTouch(){return matchMedia('(max-width:900px), (hover:none)').matches}
 for(const el of els.countries){
   el.addEventListener('pointerenter',()=>{if(!isTouch()&&!pinned)showTip(el,false)});
+  el.addEventListener('pointerleave',()=>{if(!isTouch()&&!pinned)scheduleClose()});
   el.addEventListener('pointerup',e=>{if(isTouch()&&!moved){e.stopPropagation();openSheet(el);suppressClickUntil=Date.now()+300}});el.addEventListener('click',e=>{e.stopPropagation();if(Date.now()<suppressClickUntil)return;isTouch()?openSheet(el):showTip(el,true)});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();isTouch()?openSheet(el):showTip(el,true)}});
 }
@@ -296,8 +300,7 @@ els.svg.addEventListener('click',e=>{if(e.target===els.svg&&!moved)hideTip(true)
 function reset(){view={x:0,y:0,k:1};applyView();hideTip(true);closeSheet()}
 async function refresh(quiet=false){if(!quiet)setStatus('Checking the live reading ledger…');try{const rows=await loadSheet();group(rows);const time=new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit'}).format(new Date());setStatus(`Live sheet · checked ${time}`,'live')}catch(e){console.warn(e);if(SNAPSHOT.length){group(SNAPSHOT);setStatus('Saved snapshot · live refresh unavailable','fallback')}else{setStatus('Live reading ledger unavailable','error');els.summary.textContent='The reading ledger could not be loaded.'}}}
 $('#tipClose').onclick=()=>hideTip(true);$('#sheetClose').onclick=closeSheet;els.backdrop.onclick=closeSheet;
-els.mapWrap.addEventListener('pointerenter',()=>clearTimeout(closeTimer));els.mapWrap.addEventListener('pointerleave',()=>{if(!pinned&&!isTouch())scheduleClose()});
-els.tip.addEventListener('pointerenter',()=>clearTimeout(closeTimer));els.tip.addEventListener('pointerleave',()=>{if(!pinned)scheduleClose()});
+els.tip.addEventListener('pointerenter',()=>{if(!pinned)hideTip()});
 els.tip.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});els.sheet.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
 $('#zoomIn').onclick=()=>zoomAt(1.45);$('#zoomOut').onclick=()=>zoomAt(1/1.45);$('#reset').onclick=reset;$('#brand').onclick=reset;
 addEventListener('keydown',e=>{if(e.key==='Escape'){hideTip(true);closeSheet()}});
