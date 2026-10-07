@@ -1,0 +1,52 @@
+name: Fix flags and hover dismissal
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-flags-hover.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  patch-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch and verify index
+        shell: bash
+        run: |
+          set -euo pipefail
+          before='a590a0556480251be966f4b61a7f87356119747e'
+          after='33e2f524c3aacae851afd5cca7a2526f00fb73b5'
+          current="$(git hash-object index.html)"
+          if [[ "$current" == "$after" ]]; then exit 0; fi
+          if [[ "$current" != "$before" ]]; then echo "Unexpected index blob: $current"; exit 1; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          pairs=[
+            ('.country-title .flag{font-size:1.45rem;filter:saturate(.8)}', '.country-title .flag-frame{display:inline-grid;place-items:center;flex:0 0 30px;width:30px;height:22px}\n.country-title img.flag{display:block;width:auto;height:auto;max-width:30px;max-height:22px;border:1px solid rgba(96,72,36,.35);box-shadow:0 1px 2px rgba(49,34,16,.18);filter:none}\n.country-title .flag-fallback{display:grid;place-items:center;width:30px;height:20px;border:1px solid rgba(96,72,36,.35);background:#ead8aa;color:#4e493b;font:700 .62rem/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.04em}\n.country-title .flag-fallback[hidden]{display:none}'),
+            ("function flag(alpha2){const c=String(alpha2||'').toUpperCase();return c.length===2?String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt())):'🗺️'}", "function flagMarkup(alpha2){const c=String(alpha2||'').toLowerCase();if(!/^[a-z]{2}$/.test(c))return '<span class=\"flag-frame\"><span class=\"flag-fallback\" aria-hidden=\"true\">—</span></span>';const code=c.toUpperCase();return `<span class=\"flag-frame\" aria-hidden=\"true\"><img class=\"flag\" src=\"https://flagcdn.com/w40/${c}.png\" srcset=\"https://flagcdn.com/w80/${c}.png 2x\" width=\"30\" alt=\"\" decoding=\"async\" referrerpolicy=\"no-referrer\" onerror=\"this.hidden=true;this.nextElementSibling.hidden=false\"><span class=\"flag-fallback\" hidden>${code}</span></span>`}"),
+            ('<span class="flag">${flag(el.dataset.alpha2)}</span>${esc(name)}', '${flagMarkup(el.dataset.alpha2)}<span>${esc(name)}</span>'),
+            ('function scheduleClose(){clearTimeout(closeTimer);closeTimer=setTimeout(()=>hideTip(),380)}', 'function scheduleClose(delay=90){clearTimeout(closeTimer);closeTimer=setTimeout(()=>hideTip(),delay)}'),
+            ("  el.addEventListener('pointerenter',()=>{if(!isTouch()&&!pinned)showTip(el,false)});\n  el.addEventListener('pointerup'", "  el.addEventListener('pointerenter',()=>{if(!isTouch()&&!pinned)showTip(el,false)});\n  el.addEventListener('pointerleave',()=>{if(!isTouch()&&!pinned)scheduleClose()});\n  el.addEventListener('pointerup'"),
+            ("els.mapWrap.addEventListener('pointerenter',()=>clearTimeout(closeTimer));els.mapWrap.addEventListener('pointerleave',()=>{if(!pinned&&!isTouch())scheduleClose()});\nels.tip.addEventListener('pointerenter',()=>clearTimeout(closeTimer));els.tip.addEventListener('pointerleave',()=>{if(!pinned)scheduleClose()});", "els.tip.addEventListener('pointerenter',()=>{if(!pinned)hideTip()});")
+          ]
+          for old,new in pairs:
+            if old not in s: raise SystemExit(f'Missing expected block: {old[:90]!r}')
+            s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          result="$(git hash-object index.html)"
+          if [[ "$result" != "$after" ]]; then echo "Unexpected patched blob: $result"; exit 1; fi
+      - name: Commit update
+        shell: bash
+        run: |
+          if git diff --quiet -- index.html; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Restore country flags and dismiss hover panels'
+          git push
